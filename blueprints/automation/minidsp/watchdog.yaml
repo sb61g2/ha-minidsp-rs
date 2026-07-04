@@ -46,7 +46,7 @@ blueprint:
       description: >
         The MiniDSP integration config entry ID. Find it in Settings →
         Devices & Services → MiniDSP RS → three-dot menu → System information.
-        It looks like `01KM8CYEZZ1973Q9J54TR732V9`.
+        It looks like `01ABCDEFGH1234IJKLMNOP5678Q`.
       selector:
         text: {}
     power_off_seconds:
