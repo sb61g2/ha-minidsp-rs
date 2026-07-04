@@ -1,0 +1,105 @@
+blueprint:
+  name: MiniDSP RS Watchdog
+  description: >
+    Monitors the MiniDSP integration for unavailability. After one minute of
+    the entity being unavailable, power-cycles the MiniDSP device, restarts
+    the add-on, and reloads the integration config entry.
+
+    Intended for USB-connected devices on HAOS where the HID interface can
+    occasionally require a hard power cycle to recover. Requires a smart
+    switch controlling power to the MiniDSP device.
+
+    Also runs at HA startup to catch failures that occurred while HA was down.
+  domain: automation
+  homeassistant:
+    min_version: "2023.4.0"
+  input:
+    minidsp_entity:
+      name: MiniDSP entity
+      description: >
+        The MiniDSP media player entity to monitor (e.g. "MiniDSP FlexHtx
+        Volume Control"). This is the "Volume Control" media_player created
+        by the integration.
+      selector:
+        entity:
+          domain: media_player
+    power_switch:
+      name: USB power switch
+      description: >
+        Smart switch that controls power to the MiniDSP device. The watchdog
+        will cut power for a few seconds to clear HID interface corruption
+        before restarting the daemon.
+      selector:
+        entity:
+          domain: switch
+    addon_id:
+      name: Add-on ID
+      description: >
+        The full add-on identifier including the repository hash prefix
+        (e.g. `2e70a482_minidsp`). Find it in Developer Tools → Actions →
+        search for `hassio.addon_restart` → pick the add-on from the dropdown
+        and note the value shown.
+      selector:
+        text: {}
+    config_entry_id:
+      name: Integration config entry ID
+      description: >
+        The MiniDSP integration config entry ID. Find it in Settings →
+        Devices & Services → MiniDSP RS → three-dot menu → System information.
+        It looks like `01KM8CYEZZ1973Q9J54TR732V9`.
+      selector:
+        text: {}
+    power_off_seconds:
+      name: Power-off duration (seconds)
+      description: How long to leave the device powered off before restoring.
+      default: 10
+      selector:
+        number:
+          min: 5
+          max: 60
+          unit_of_measurement: s
+    warmup_seconds:
+      name: Warmup delay (seconds)
+      description: >
+        How long to wait after power is restored before restarting the add-on.
+        The MiniDSP HID interface needs a few seconds to initialise.
+      default: 15
+      selector:
+        number:
+          min: 5
+          max: 60
+          unit_of_measurement: s
+
+triggers:
+  - trigger: state
+    entity_id: !input minidsp_entity
+    to: unavailable
+    for: "00:01:00"
+  - trigger: homeassistant
+    event: start
+
+conditions:
+  - condition: state
+    entity_id: !input minidsp_entity
+    state: unavailable
+
+actions:
+  - action: switch.turn_off
+    target:
+      entity_id: !input power_switch
+  - delay:
+      seconds: !input power_off_seconds
+  - action: switch.turn_on
+    target:
+      entity_id: !input power_switch
+  - delay:
+      seconds: !input warmup_seconds
+  - action: hassio.addon_restart
+    data:
+      addon: !input addon_id
+  - delay: "00:00:30"
+  - action: homeassistant.reload_config_entry
+    data:
+      entry_id: !input config_entry_id
+
+mode: single

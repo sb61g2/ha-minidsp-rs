@@ -1,0 +1,42 @@
+name: "MiniDSP RS"
+version: "0.1.44"
+slug: "minidsp"
+description: "MiniDSP control daemon — HTTP API and TCP server for MiniDSP DSP devices (USB or Wi-DG network)"
+url: "https://github.com/sb61g2/ha-minidsp-rs"
+image: "ghcr.io/sb61g2/minidsp-rs-addon-{arch}"
+arch:
+  - aarch64
+  - armv7
+  - amd64
+startup: services
+boot: auto
+init: false
+
+usb: true
+full_access: true
+
+ports:
+  5380/tcp: 5380
+  5333/tcp: 5333
+  5334/tcp: 5334
+ports_description:
+  5380/tcp: "HTTP REST API"
+  5333/tcp: "TCP Protocol Server - device 0 (MiniDSP mobile/desktop apps)"
+  5334/tcp: "TCP Protocol Server - device 1 (second MiniDSP device)"
+
+map:
+  - config:rw
+
+options:
+  log_level: "info"
+  http_bind_address: "0.0.0.0:5380"
+  tcp_servers:
+    - bind_address: "0.0.0.0:5333"
+  widg_ip: ""
+
+schema:
+  log_level: "list(trace|debug|info|warn|error)"
+  http_bind_address: str
+  tcp_servers:
+    - bind_address: str
+  widg_ip: str
